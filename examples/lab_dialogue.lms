@@ -1,0 +1,57 @@
+begin
+    # keyword characterinfo_name script_name (window pos, window color)
+    actor "demo_luigi" luigi (0, 3) # actor definition
+    actor "demo_hakase" gadd (0, 1)
+
+    # check ast.py to see which tags can be set as off and on
+    set menu off
+    set neck on
+    set hud off
+
+    # integers in set statements will generate FLAGON and FLAGOFF tags
+    set 22 on
+
+    # an actor action tag, since it takes no arguments the line is ended with a semicolon
+    # this will likely be changed in a later release
+    luigi.shadowoff;
+    gadd.shadowoff;
+
+    # ! signifies a direct command, it generates a script tag with the same name as given
+    # and generates an argument list using the values given in parentheses
+    !luigistop() # Make sure luigi is locked
+
+    # if statements take a an int as a flag, 'if falg else' acts as as 'if !flag' expression would in other languages
+    if 7
+        gadd.target "180" # actor command, it takes args between double quotes. should change that.
+	
+	# generates an in game menu, only 4 options will show at once. TODO: make that a semantic error
+        choice gadd "Where will you go Luigi?"
+            option "The Mansion"
+                gadd.speak "Good luck young feller!"
+                !warp(2)
+            end
+            option "The Gallery"
+                gadd.speak "A good choice, Luigi!"
+                !warp(6)
+            end
+            option "Training Room"
+                gadd.speak "Need some practice? Heheheh..."
+                !warp(3)
+            end
+            option "Light Switch"
+                choice luigi "(Hmm... On or Off?)"
+                    option "On"
+                        !plight(1)
+                    end
+                    option "Off"
+                        !plight(0)
+                    end
+                end
+            end
+        end
+    else
+        set 7 on
+        gadd.speak "oops"
+        !warp(1)
+    end
+end
