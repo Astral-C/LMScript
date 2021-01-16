@@ -1,0 +1,15 @@
+begin
+    actor "demo_luigi" luigi (0, 3)
+    actor "demo_hakase" gadd (0, 1)
+    set menu off
+    set neck on
+    set hud off
+    for x, 0, 3
+        for y, 0, 3
+            for z, 0, 3
+                !thundern(x, y, z, 3)
+                !wait(60)
+            end
+        end
+    end
+end

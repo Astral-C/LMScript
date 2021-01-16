@@ -6,6 +6,8 @@ def parse(tokens):
     state = {
         'curtoken' : 0,
         'actors' : {},
+        'local_vars' : {}, #Bad? Due to possible adding extremely simple pass-by-value 'functions' would need to have real scoping not, well not this.
+        'in_for': False,
         'csv_text' : ['Next']
     }
 
@@ -71,6 +73,8 @@ def Statement(tokens, state):
         return ActStmt(tokens, state)
     elif(item.token == Tokens.FRAME):
         return FrameStmt(tokens, state)
+    elif(item.token == Tokens.FOR):
+        return ForStatement(tokens, state)
 
     #No such thing as an invalid statement, this allows for direct translation tokens for event <=> lms
     elif(item.token == Tokens.DIRECT):
@@ -83,7 +87,7 @@ def SetStatement(tokens, state):
     toset = tokens[state['curtoken']]
     value = tokens[state['curtoken'] + 1]
 
-    if(toset.token != Tokens.MENU and toset.token != Tokens.HUD and toset.token != Tokens.NECK and toset.token != Tokens.ICONST):
+    if(toset.token != Tokens.MENU and toset.token != Tokens.HUD and toset.token != Tokens.NECK and toset.token != Tokens.ICONST and toset.lexeme not in state['local_vars']):
         print("Invalid Set Statement: {} not settable".format(toset.lexeme))
         return None
     if(value.token != Tokens.ON and value.token != Tokens.OFF):
@@ -95,7 +99,7 @@ def SetStatement(tokens, state):
 
 def IfStatement(tokens, state):
     condition = tokens[state['curtoken']]
-    if(condition.token != Tokens.ICONST):
+    if(condition.token != Tokens.ICONST and condition.lexeme not in state['local_vars']):
         print("Invalid Condition {} for if statement".format(condition.token))
         return None
     
@@ -245,9 +249,12 @@ def DirectStmt(tokens, state):
         args.append(tokens[state['curtoken']])
         state['curtoken'] += 2
 
-    if(tokens[state['curtoken']].token == Tokens.ICONST or tokens[state['curtoken']].token == Tokens.SCONST):
+    if(tokens[state['curtoken']].token == Tokens.ICONST or tokens[state['curtoken']].token == Tokens.SCONST or tokens[state['curtoken']].token == Tokens.IDENT):
         args.append(tokens[state['curtoken']])
         state['curtoken'] += 1
+    else:
+        print("Invalid argument type for direct {}".format(tokens[state['curtoken']].lexeme))
+        return None
 
     if(tokens[state['curtoken']].token != Tokens.RPAREN):
         print("Expected right paren after args, got {}".format(tokens[state['curtoken']].lexeme))
@@ -256,3 +263,37 @@ def DirectStmt(tokens, state):
     state['curtoken'] += 1
     return DirectNode(cmd, args)
     
+#Very hacked together but works for these purposes
+def ForStatement(tokens, state):
+    sentinal = tokens[state['curtoken']]
+    
+    if(sentinal.token != Tokens.IDENT):
+        print("No sentinal value in for loop")
+        return None
+
+
+    if(tokens[state['curtoken']].lexeme in state['actors'] or tokens[state['curtoken']].lexeme in state['local_vars']): #not allowing actors and sentinals to use same name for obvious reasons
+        print(f"Sentinal variable '{tokens[state['curtoken']].lexeme}' already defined")
+        return None
+
+
+    state['curtoken'] += 1
+    if(tokens[state['curtoken']].token != Tokens.COMA): 
+        print("Missing comma in For loop")
+        return None
+    
+    state['curtoken'] += 1
+    if(tokens[state['curtoken']].token != Tokens.ICONST and tokens[state['curtoken'] + 1].token != Tokens.COMA and tokens[state['curtoken'] + 2].token != Tokens.ICONST):
+        print(f"Incorrect format in for loop range {tokens[state['curtoken']].token} {tokens[state['curtoken'] + 1].token} {tokens[state['curtoken'] + 2].token}")
+        return None
+
+
+    start = int(tokens[state['curtoken']].lexeme)
+    end = int(tokens[state['curtoken'] + 2].lexeme)
+    state['local_vars'][sentinal.lexeme] = start #very bad, no error handling
+    state['curtoken'] += 3
+
+
+    loop_nodes = Statements(tokens, state)
+    
+    return ForNode(loop_nodes, sentinal, start, end, True)

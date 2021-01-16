@@ -1,4 +1,5 @@
-from lex import Tokens
+from lex import Tokens, LexItem
+import copy
 
 class AstNode():
     pass
@@ -145,5 +146,40 @@ class DirectNode(AstNode):
                 out.write("({})".format(arg.lexeme))
             elif(arg.token == Tokens.SCONST):
                 out.write("\"{}\"".format(arg.lexeme))
+            elif(arg.token == Tokens.IDENT):
+                out.write("({})".format(state['local_vars'][arg.lexeme]))
+
                 
         out.write("\n")
+
+#Nasty.
+class ForNode(AstNode):
+    def __init__(self, nodes, st, s, ed, ex):
+        self.nodes = nodes
+        self.sentinal = st
+        self.start = s
+        self.end = ed
+        self.expanded = ex
+
+    def write(self, out, state):
+        for x in range(self.start, self.end):
+            state['local_vars'][self.sentinal.lexeme] = x
+
+            for lnode in self.nodes:
+                n = LexItem()
+                n.setToken(Tokens.ICONST)
+                node = copy.deepcopy(lnode)
+                if(type(node) == SetNode and node.set.token == Tokens.IDENT):
+                    print(state['local_vars'])
+                    n.setLexeme(state['local_vars'][node.set.lexeme])
+                    node.set = n
+                    node.write(out, state)
+
+                elif(type(node) == IfNode):
+                    print(state['local_vars'])
+                    n.setLexeme(state['local_vars'][node.condition.lexeme])
+                    node = copy.deepcopy(node)
+                    node.condition = n
+                    node.write(out, state)
+                else:
+                    node.write(out, state)

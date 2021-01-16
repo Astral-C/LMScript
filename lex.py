@@ -25,7 +25,8 @@ class Tokens(Enum):
     SEMICOLON = 25
     DOT = 26
     DIRECT = 27
-    ERR = 28
+    FOR = 28
+    ERR = 29
 
 ReservedTokens = {
     "begin" : Tokens.BEGIN,
@@ -42,6 +43,7 @@ ReservedTokens = {
     "hud" : Tokens.HUD,
     "on" : Tokens.ON,
     "off" : Tokens.OFF,
+    "for" : Tokens.FOR,
     "(" : Tokens.LPAREN,
     ")" : Tokens.RPAREN,
     "," : Tokens.COMA,
@@ -62,6 +64,9 @@ class LexItem:
 
     def setToken(self, t):
         self.token = t
+
+    def setLexeme(self, l):
+        self.lexeme = l
 
 def lex(path):
     #Lexer States
@@ -85,9 +90,17 @@ def lex(path):
         curc = file.read(1)
 
         while(curc.isspace()):
+            if(state == "IDENT" or state == "INT"):
+                cur_item.line = l
+                tokens.append(cur_item)
+                cur_item = LexItem()
+                state = "BEGIN"
+
             if(curc == '\n'):
                 l+=1
+
             curc = file.read(1)
+
 
         if(state == "BEGIN"):
 
@@ -128,7 +141,7 @@ def lex(path):
                 cur_item = LexItem()
                 state = "BEGIN"
 
-            elif(not curc.isalnum()):
+            elif(not curc.isalnum()): #special case for spaces for some
                 file.seek(file.tell() - 1, 0)
                 cur_item.line = l
                 tokens.append(cur_item)
